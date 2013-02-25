@@ -6,7 +6,6 @@ var AsteroidGame = (function() {
     this.radius = radius;
     this.color = Asteroid.get_random_color();
     this.velocity = velocity;
-    this.bullets = [];
 
     this.offScreen = function() {
       if (self.posx > (game.screensize+self.radius) || self.posx < (0-self.radius)) {
@@ -52,17 +51,18 @@ var AsteroidGame = (function() {
 
     var posx = Math.floor((Math.random()*game.screensize)+1);
     var posy = Math.floor((Math.random()*game.screensize)+1);
-    var veloX = (Math.random()*10)-5;
-    var veloY = (Math.random()*10)-5;
+    var veloX = (Math.random()*5)-2.5;
+    var veloY = (Math.random()*5)-2.5;
     var velocity = [veloX, veloY];
     return new Asteroid(posx, posy, 20, velocity, game);
   };
 
   function Game(ctx) {
     var self = this;
-    this.screensize = 800;
+    this.screensize = 600;
     this.asteroids = [];
     this.ship = undefined;
+    this.bullets = [];
 
     this.initialize = function() {
       for (var i = 0; i < 10; i++) {
@@ -79,9 +79,11 @@ var AsteroidGame = (function() {
       });
       self.ship.draw(ctx);
 
-      self.bullets.forEach(function(bul) {
-        bul.draw(ctx);
-      });
+      if (self.bullets[0]) {
+        self.bullets.forEach(function(bul) {
+          bul.draw(ctx);
+        });
+      };
 
     };
 
@@ -91,12 +93,14 @@ var AsteroidGame = (function() {
       });
       self.ship.update();
 
-      self.bullets.forEach(function(bul) {
-        bul.update();
-      });
+      if (self.bullets[0]) {
+        self.bullets.forEach(function(bul) {
+          bul.update();
+        });
+      };
 
       if (self.ship.isHit()) {
-        // alert("Game Over");
+        alert("Game Over");
       };
     };
 
@@ -118,7 +122,7 @@ var AsteroidGame = (function() {
   function Ship(game) {
     var self = this;
     this.velocity = {x: 0, y: 0 };
-    this.radius = 10;
+    this.radius = 7;
     this.posx = game.screensize/2;
     this.posy = game.screensize/2;
 
@@ -165,7 +169,7 @@ var AsteroidGame = (function() {
       self.velocity.x += dx;
       self.velocity.y += dy;
       if (self.velocity.x > 16) {
-        self.velocit.x = 16;
+        self.velocity.x = 16;
       }
       else if (self.velocity.x < -16) {
         self.velocity.x = -16;
@@ -179,7 +183,7 @@ var AsteroidGame = (function() {
     }
 
     this.fireBullet = function() {
-      game.bullets.push(new Bullet(self));
+      game.bullets.push(new Bullet(game));
     }
 
   };
@@ -187,11 +191,11 @@ var AsteroidGame = (function() {
   function Bullet(game) {
     var self = this;
     this.radius = 4;
-    this.direction = {x: (ship.velocity.x), y: (ship.velocity.y)};
+    this.direction = {x: game.ship.velocity.x, y: game.ship.velocity.y};
     this.speed = 30;
     this.velocity = {x: (this.direction.x * this.speed), y: (this.direction.y * this.speed)}
-    this.posx = ship.posx;
-    this.posy = ship.posy;
+    this.posx = game.ship.posx;
+    this.posy = game.ship.posy;
 
 
     this.draw = function(ctx) {
@@ -204,7 +208,26 @@ var AsteroidGame = (function() {
     this.update = function () {
       self.posx += self.velocity.x;
       self.posy += self.velocity.y;
+
+      _.some(game.asteroids, function(ast) { 
+        if (self.hitAsteroid(ast))  {
+          var index = game.asteroids.indexOf(ast);
+          game.asteroids.splice(index, 1);
+          var index = game.bullets.indexOf(self);
+          game.bullets.splice(index, 1);
+        }
+      });
       // self.velocity = self.direction * self.speed;
+    };
+
+    this.hitAsteroid = function(ast) {
+      var distance = Math.sqrt(Math.pow((self.posx-ast.posx),2)+Math.pow((self.posy-ast.posy),2));
+      if (distance <= (self.radius+ast.radius)) {
+        return true;
+      } else {
+        return false;
+      };
+      
     };
 
   }
